@@ -38,18 +38,44 @@ streamed straight back to the client, unmodified and unfollowed.
 
 ```sh
 cp .env.example .env
-$EDITOR .env   # fill in EXCHANGE_DOMAIN / EXCHANGE_USERNAME / EXCHANGE_PASSWORD
-$EDITOR docker-compose.yml   # set the port binding to your host's actual LAN IP
+$EDITOR .env   # fill in LISTEN_BIND_IP, EXCHANGE_DOMAIN/USERNAME/PASSWORD, etc.
 docker compose up -d --build
 # or: podman compose up -d --build
 ```
 
+Nothing in `docker-compose.yml` itself needs editing — every value that
+varies per-deployment (which LAN interface to bind, the credentials, the
+upstream host) is read from environment variables with sane defaults, so the
+compose file can be left as-is and configured entirely through `.env` (or,
+for Portainer, its stack "Environment variables" UI — see below).
+
 The proxy binds to plain HTTP — it's meant to run on a trusted LAN (or a
 Tailscale tailnet, which looks like more LAN traffic to it; no special
-handling needed), not to be exposed publicly. The `ports:` binding in
-`docker-compose.yml` is what actually restricts exposure to one interface —
-set it to your host's LAN IP (or your `tailscale0` interface's IP) rather
-than leaving it open on every interface.
+handling needed), not to be exposed publicly. `LISTEN_BIND_IP` is what
+actually restricts exposure to one interface — set it to your host's LAN IP
+(or your `tailscale0` interface's IP) rather than leaving it at the default
+`0.0.0.0`, which binds every interface.
+
+## Deploying via Portainer (Git repository stack)
+
+If you add this repo to Portainer as a "Repository" stack, Portainer clones
+`docker-compose.yml` read-only on each deploy — there's no `.env` file to
+edit (it's gitignored and never committed) and no way to hand-edit the
+compose file. That's fine: everything below is designed for exactly that.
+
+1. In the stack's **Environment variables** section, add the same variables
+   listed in `.env.example` / the reference table below (at minimum
+   `EXCHANGE_USERNAME`, `EXCHANGE_PASSWORD`, and `LISTEN_BIND_IP`). Portainer
+   feeds these into the same `${VAR}` substitution `docker-compose.yml`
+   already uses — no compose edits needed.
+2. Mark `EXCHANGE_PASSWORD` (and `EXCHANGE_DOMAIN`/`EXCHANGE_USERNAME` if you
+   prefer) as **sensitive** in Portainer's UI if it offers that option, so
+   it's masked in the stack's settings view.
+3. Deploy. Portainer will build the image from the repo's `Dockerfile`
+   itself — no separate registry push needed.
+4. Anything not listed as an environment variable in Portainer keeps its
+   built-in default (see the reference table) — you only need to set the
+   ones you want to change from the default.
 
 ## Configuring Thunderbird
 
@@ -68,21 +94,36 @@ than leaving it open on every interface.
 
 ## Configuration reference
 
-All variables go in `.env` (see `.env.example`). Any variable also accepts a
-`_FILE` suffix (e.g. `EXCHANGE_PASSWORD_FILE=/run/secrets/exchange_password`)
-to read the value from a file instead — the standard Docker/Podman secrets
-convention. If a `_FILE` variant is set but unreadable, the proxy refuses to
-start rather than silently treating the value as unset.
+Set these in `.env` (plain `docker compose`) or in Portainer's stack
+"Environment variables" (Git-repository stacks) — both feed the same
+`${VAR}` placeholders in `docker-compose.yml`. Anything left unset keeps its
+default.
 
 | Variable | Default | Notes |
 |---|---|---|
-| `LISTEN_ADDR` | `0.0.0.0:8080` | Inside the container's network namespace; control real exposure via the `ports:` binding in compose instead. |
+| `LISTEN_BIND_IP` | `0.0.0.0` | Host-side interface `docker-compose.yml` publishes the port on. Set to your LAN (or `tailscale0`) IP — leaving it at the default exposes every interface on the host. |
+| `LISTEN_PORT` | `8080` | Host-side port. |
 | `UPSTREAM_SCHEME` | `https` | |
 | `UPSTREAM_HOST` | `mail.example.com` | |
 | `EXCHANGE_DOMAIN` | *(empty)* | Omit if your account doesn't need a `DOMAIN\` prefix. |
 | `EXCHANGE_USERNAME` | *(required)* | |
 | `EXCHANGE_PASSWORD` | *(required)* | |
 | `UPSTREAM_INSECURE_SKIP_VERIFY` | `false` | Escape hatch only; the real server uses a standard public CA cert, so this shouldn't normally be needed. |
+
+Two more exist as escape hatches for non-Portainer, plain `docker compose`
+use, not exposed through `docker-compose.yml`'s `environment:` block above:
+
+- `LISTEN_ADDR` (default `0.0.0.0:8080`) — the address the process binds to
+  *inside* the container's own network namespace. Left at its default in
+  normal use; `LISTEN_BIND_IP`/`LISTEN_PORT` above are what actually control
+  exposure.
+- `EXCHANGE_PASSWORD_FILE` (Docker/Podman secrets convention, e.g.
+  `/run/secrets/exchange_password`, read and whitespace-trimmed instead of
+  `EXCHANGE_PASSWORD`) — only useful when that file genuinely exists on the
+  host running the container, which isn't the case for a Portainer
+  Git-repository stack; use Portainer's sensitive-variable option there
+  instead. If set but unreadable, the proxy refuses to start rather than
+  silently treating the value as unset.
 
 ## Verification / troubleshooting
 

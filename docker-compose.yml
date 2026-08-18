@@ -3,21 +3,37 @@ services:
     build: .
     image: iis-proxy:latest
     restart: unless-stopped
-    env_file:
-      - .env
     ports:
       # Bind to a specific LAN interface IP so the proxy is not reachable
-      # from every interface the host has (including any public one).
-      # Replace 192.168.1.50 with your host's actual LAN IP. If you only
-      # ever reach this via Tailscale, you can instead bind to your
-      # tailscale0 interface's IP the same way.
-      - "192.168.1.50:8080:8080"
-    # LISTEN_ADDR (set in .env, defaults to 0.0.0.0:8080) is the container's
-    # own network namespace and doesn't need to change — the host-side bind
-    # above is what actually controls exposure.
+      # from every interface the host has (including any public one). Set
+      # LISTEN_BIND_IP (e.g. to your host's LAN IP, or your tailscale0
+      # interface's IP) via environment variables — see README. Defaults to
+      # every interface if unset, which is NOT recommended.
+      - "${LISTEN_BIND_IP:-0.0.0.0}:${LISTEN_PORT:-8080}:8080"
+    environment:
+      # All of these are substituted from variables set outside this file
+      # (a .env file next to it for plain `docker compose`, or the stack's
+      # "Environment variables" in Portainer when deployed from a Git
+      # repository, where this file can't be edited directly) — see
+      # .env.example / README for the full list and defaults.
+      UPSTREAM_SCHEME: ${UPSTREAM_SCHEME:-https}
+      UPSTREAM_HOST: ${UPSTREAM_HOST:-mail.example.com}
+      EXCHANGE_DOMAIN: ${EXCHANGE_DOMAIN:-}
+      EXCHANGE_USERNAME: ${EXCHANGE_USERNAME:-}
+      EXCHANGE_PASSWORD: ${EXCHANGE_PASSWORD:-}
+      UPSTREAM_INSECURE_SKIP_VERIFY: ${UPSTREAM_INSECURE_SKIP_VERIFY:-false}
+      # LISTEN_ADDR is left at its built-in default (0.0.0.0:8080, the
+      # container's own network namespace) — the ports: binding above is
+      # what actually controls exposure, so there's normally no need to
+      # override this.
 
-    # Optional alternative to putting EXCHANGE_PASSWORD in .env directly:
-    # Docker/Podman secrets. Uncomment below and see README for details.
+    # Alternative to setting EXCHANGE_PASSWORD directly above: point at a
+    # file instead (Docker/Podman secrets convention). Only usable when the
+    # referenced file actually exists on the host running the container —
+    # not applicable to a Portainer "Repository" stack, since Portainer
+    # clones this repo fresh and the file won't be there. For that
+    # deployment mode, use Portainer's environment variables UI instead
+    # (it has a "sensitive"/masked option for values like this).
     # secrets:
     #   - exchange_password
     # environment:
