@@ -37,7 +37,7 @@ streamed straight back to the client, unmodified and unfollowed.
 ## Quick start
 
 ```sh
-cp .env.example .env
+cp example.env .env
 $EDITOR .env   # fill in LISTEN_BIND_IP, EXCHANGE_DOMAIN/USERNAME/PASSWORD, etc.
 docker compose up -d --build
 # or: podman compose up -d --build
@@ -64,7 +64,7 @@ edit (it's gitignored and never committed) and no way to hand-edit the
 compose file. That's fine: everything below is designed for exactly that.
 
 1. In the stack's **Environment variables** section, add the same variables
-   listed in `.env.example` / the reference table below (at minimum
+   listed in `example.env` / the reference table below (at minimum
    `EXCHANGE_USERNAME`, `EXCHANGE_PASSWORD`, and `LISTEN_BIND_IP`). Portainer
    feeds these into the same `${VAR}` substitution `docker-compose.yml`
    already uses — no compose edits needed.
