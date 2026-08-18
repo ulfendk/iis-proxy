@@ -65,9 +65,9 @@ compose file. That's fine: everything below is designed for exactly that.
 
 1. In the stack's **Environment variables** section, add the same variables
    listed in `example.env` / the reference table below (at minimum
-   `EXCHANGE_USERNAME`, `EXCHANGE_PASSWORD`, and `LISTEN_BIND_IP`). Portainer
-   feeds these into the same `${VAR}` substitution `docker-compose.yml`
-   already uses — no compose edits needed.
+   `UPSTREAM_HOST`, `EXCHANGE_USERNAME`, `EXCHANGE_PASSWORD`, and
+   `LISTEN_BIND_IP`). Portainer feeds these into the same `${VAR}`
+   substitution `docker-compose.yml` already uses — no compose edits needed.
 2. Mark `EXCHANGE_PASSWORD` (and `EXCHANGE_DOMAIN`/`EXCHANGE_USERNAME` if you
    prefer) as **sensitive** in Portainer's UI if it offers that option, so
    it's masked in the stack's settings view.
@@ -104,11 +104,11 @@ default.
 | `LISTEN_BIND_IP` | `0.0.0.0` | Host-side interface `docker-compose.yml` publishes the port on. Set to your LAN (or `tailscale0`) IP — leaving it at the default exposes every interface on the host. |
 | `LISTEN_PORT` | `8080` | Host-side port. |
 | `UPSTREAM_SCHEME` | `https` | |
-| `UPSTREAM_HOST` | `mail.example.com` | |
+| `UPSTREAM_HOST` | *(required)* | Your Exchange server's hostname, e.g. `mail.example.com`. |
 | `EXCHANGE_DOMAIN` | *(empty)* | Omit if your account doesn't need a `DOMAIN\` prefix. |
 | `EXCHANGE_USERNAME` | *(required)* | |
 | `EXCHANGE_PASSWORD` | *(required)* | |
-| `UPSTREAM_INSECURE_SKIP_VERIFY` | `false` | Escape hatch only; the real server uses a standard public CA cert, so this shouldn't normally be needed. |
+| `UPSTREAM_INSECURE_SKIP_VERIFY` | `false` | Escape hatch only; most Exchange servers use a standard public CA cert, so this shouldn't normally be needed. |
 
 Two more exist as escape hatches for non-Portainer, plain `docker compose`
 use, not exposed through `docker-compose.yml`'s `environment:` block above:

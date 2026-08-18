@@ -17,7 +17,7 @@ services:
       # repository, where this file can't be edited directly) — see
       # example.env / README for the full list and defaults.
       UPSTREAM_SCHEME: ${UPSTREAM_SCHEME:-https}
-      UPSTREAM_HOST: ${UPSTREAM_HOST:-mail.example.com}
+      UPSTREAM_HOST: ${UPSTREAM_HOST}
       EXCHANGE_DOMAIN: ${EXCHANGE_DOMAIN:-}
       EXCHANGE_USERNAME: ${EXCHANGE_USERNAME:-}
       EXCHANGE_PASSWORD: ${EXCHANGE_PASSWORD:-}

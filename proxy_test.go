@@ -8,16 +8,16 @@ import (
 )
 
 func TestDirector_RewritesUpstreamAndAuth(t *testing.T) {
-	target := &url.URL{Scheme: "https", Host: "mail.example.com"}
+	target := &url.URL{Scheme: "https", Host: "exchange.example.com"}
 	req := httptest.NewRequest("POST", "http://localhost:8080/EWS/Exchange.asmx?foo=bar", nil)
 	req.Header.Set("Authorization", "Basic bogus-client-value")
 
 	director(req, target, "Basic real-server-value")
 
-	if req.URL.Scheme != "https" || req.URL.Host != "mail.example.com" {
+	if req.URL.Scheme != "https" || req.URL.Host != "exchange.example.com" {
 		t.Fatalf("unexpected upstream URL: %s", req.URL)
 	}
-	if req.Host != "mail.example.com" {
+	if req.Host != "exchange.example.com" {
 		t.Fatalf("Host header not rewritten: %s", req.Host)
 	}
 	if got := req.Header.Get("Authorization"); got != "Basic real-server-value" {
@@ -32,7 +32,7 @@ func TestDirector_RewritesUpstreamAndAuth(t *testing.T) {
 }
 
 func TestDirector_OverridesAuthEvenWhenClientSendsNone(t *testing.T) {
-	target := &url.URL{Scheme: "https", Host: "mail.example.com"}
+	target := &url.URL{Scheme: "https", Host: "exchange.example.com"}
 	req := httptest.NewRequest("GET", "http://localhost:8080/autodiscover/autodiscover.xml", nil)
 
 	director(req, target, "Basic real-server-value")
@@ -43,7 +43,7 @@ func TestDirector_OverridesAuthEvenWhenClientSendsNone(t *testing.T) {
 }
 
 func TestDirector_StripsForwardedHeaders(t *testing.T) {
-	target := &url.URL{Scheme: "https", Host: "mail.example.com"}
+	target := &url.URL{Scheme: "https", Host: "exchange.example.com"}
 	req := httptest.NewRequest("GET", "http://localhost:8080/owa/", nil)
 	req.Header.Set("X-Forwarded-For", "192.168.1.50")
 	req.Header.Set("X-Forwarded-Host", "localhost:8080")
@@ -68,6 +68,7 @@ func TestLoadConfig_RequiresCredentials(t *testing.T) {
 
 func TestLoadConfig_AppliesDefaults(t *testing.T) {
 	env := map[string]string{
+		"UPSTREAM_HOST":     "exchange.example.com",
 		"EXCHANGE_USERNAME": "jdoe",
 		"EXCHANGE_PASSWORD": "s3cret",
 	}
@@ -83,8 +84,21 @@ func TestLoadConfig_AppliesDefaults(t *testing.T) {
 	if cfg.UpstreamScheme != "https" {
 		t.Errorf("UpstreamScheme default = %q", cfg.UpstreamScheme)
 	}
-	if cfg.UpstreamHost != "mail.example.com" {
-		t.Errorf("UpstreamHost default = %q", cfg.UpstreamHost)
+	if cfg.UpstreamHost != "exchange.example.com" {
+		t.Errorf("UpstreamHost = %q, want value from env", cfg.UpstreamHost)
+	}
+}
+
+func TestLoadConfig_RequiresUpstreamHost(t *testing.T) {
+	env := map[string]string{
+		"EXCHANGE_USERNAME": "jdoe",
+		"EXCHANGE_PASSWORD": "s3cret",
+	}
+	getenv := func(k string) string { return env[k] }
+
+	_, err := LoadConfig(getenv)
+	if err == nil {
+		t.Fatal("expected error for missing UPSTREAM_HOST, got nil")
 	}
 }
 
@@ -96,6 +110,7 @@ func TestLoadConfig_ReadsFileVariant(t *testing.T) {
 	}
 
 	env := map[string]string{
+		"UPSTREAM_HOST":          "exchange.example.com",
 		"EXCHANGE_USERNAME":      "jdoe",
 		"EXCHANGE_PASSWORD_FILE": pwFile,
 	}

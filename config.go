@@ -12,7 +12,7 @@ import (
 type Config struct {
 	ListenAddr     string // e.g. "0.0.0.0:8080"
 	UpstreamScheme string // "https"
-	UpstreamHost   string // "mail.example.com" (host[:port], no scheme)
+	UpstreamHost   string // e.g. "mail.example.com" (host[:port], no scheme)
 
 	Domain   string
 	Username string
@@ -60,7 +60,7 @@ func LoadConfig(getenv func(string) string) (Config, error) {
 	cfg := Config{
 		ListenAddr:         valueOrDefault(listenAddr, "0.0.0.0:8080"),
 		UpstreamScheme:     valueOrDefault(upstreamScheme, "https"),
-		UpstreamHost:       valueOrDefault(upstreamHost, "mail.example.com"),
+		UpstreamHost:       upstreamHost,
 		Domain:             domain,
 		Username:           username,
 		Password:           password,
@@ -68,6 +68,9 @@ func LoadConfig(getenv func(string) string) (Config, error) {
 	}
 
 	var missing []string
+	if cfg.UpstreamHost == "" {
+		missing = append(missing, "UPSTREAM_HOST")
+	}
 	if cfg.Username == "" {
 		missing = append(missing, "EXCHANGE_USERNAME")
 	}
