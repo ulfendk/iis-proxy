@@ -1,0 +1,28 @@
+services:
+  iis-proxy:
+    build: .
+    image: iis-proxy:latest
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      # Bind to a specific LAN interface IP so the proxy is not reachable
+      # from every interface the host has (including any public one).
+      # Replace 192.168.1.50 with your host's actual LAN IP. If you only
+      # ever reach this via Tailscale, you can instead bind to your
+      # tailscale0 interface's IP the same way.
+      - "192.168.1.50:8080:8080"
+    # LISTEN_ADDR (set in .env, defaults to 0.0.0.0:8080) is the container's
+    # own network namespace and doesn't need to change — the host-side bind
+    # above is what actually controls exposure.
+
+    # Optional alternative to putting EXCHANGE_PASSWORD in .env directly:
+    # Docker/Podman secrets. Uncomment below and see README for details.
+    # secrets:
+    #   - exchange_password
+    # environment:
+    #   EXCHANGE_PASSWORD_FILE: /run/secrets/exchange_password
+
+# secrets:
+#   exchange_password:
+#     file: ./secrets/exchange_password.txt
